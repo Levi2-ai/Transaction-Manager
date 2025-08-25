@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Download, Calendar } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   LineChart,
   Line,
@@ -19,6 +20,7 @@ function AdvancedReporting({ data }) {
   });
 
   const [view, setView] = useState('monthly'); // monthly, quarterly, custom
+  const [exportFormat, setExportFormat] = useState('json'); // json, xlsx, csv
 
   const filteredTxns = useMemo(() => {
     return data.txns.filter(t => 
@@ -104,13 +106,95 @@ function AdvancedReporting({ data }) {
       })
     };
 
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `financial-report-${dateRange.start}-to-${dateRange.end}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const fileName = `financial-report-${dateRange.start}-to-${dateRange.end}`;
+
+    if (exportFormat === 'json') {
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (exportFormat === 'xlsx') {
+      const wb = XLSX.utils.book_new();
+
+      // Summary Sheet
+      const wsSummary = XLSX.utils.json_to_sheet([
+        { key: 'Date Range Start', value: report.dateRange.start },
+        { key: 'Date Range End', value: report.dateRange.end },
+        { key: 'Total Credit', value: report.summary.totalCredit },
+        { key: 'Total Debit', value: report.summary.totalDebit },
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+      // Monthly Trends Sheet
+      const wsMonthly = XLSX.utils.json_to_sheet(report.monthlyTrends);
+      XLSX.utils.book_append_sheet(wb, wsMonthly, 'Monthly Trends');
+
+      // Category Breakdown Sheet
+      const wsCategory = XLSX.utils.json_to_sheet(report.categoryBreakdown);
+      XLSX.utils.book_append_sheet(wb, wsCategory, 'Category Breakdown');
+
+      // Project Performance Sheet
+      const wsProject = XLSX.utils.json_to_sheet(report.projectPerformance);
+      XLSX.utils.book_append_sheet(wb, wsProject, 'Project Performance');
+
+      // Transactions Sheet
+      const wsTransactions = XLSX.utils.json_to_sheet(report.transactions);
+      XLSX.utils.book_append_sheet(wb, wsTransactions, 'Transactions');
+
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
+    } else if (exportFormat === 'csv') {
+      const csvContent = [];
+
+      // Summary
+      csvContent.push(`"Summary"`);
+      csvContent.push(`"Date Range Start","${report.dateRange.start}"`);
+      csvContent.push(`"Date Range End","${report.dateRange.end}"`);
+      csvContent.push(`"Total Credit","${report.summary.totalCredit}"`);
+      csvContent.push(`"Total Debit","${report.summary.totalDebit}"`);
+      csvContent.push('');
+
+      // Monthly Trends
+      csvContent.push(`"Monthly Trends"`);
+      csvContent.push(Object.keys(report.monthlyTrends[0] || {}).map(key => `"${key}"`).join(','));
+      report.monthlyTrends.forEach(row => {
+        csvContent.push(Object.values(row).map(value => `"${value}"`).join(','));
+      });
+      csvContent.push('');
+
+      // Category Breakdown
+      csvContent.push(`"Category Breakdown"`);
+      csvContent.push(Object.keys(report.categoryBreakdown[0] || {}).map(key => `"${key}"`).join(','));
+      report.categoryBreakdown.forEach(row => {
+        csvContent.push(Object.values(row).map(value => `"${value}"`).join(','));
+      });
+      csvContent.push('');
+
+      // Project Performance
+      csvContent.push(`"Project Performance"`);
+      csvContent.push(Object.keys(report.projectPerformance[0] || {}).map(key => `"${key}"`).join(','));
+      report.projectPerformance.forEach(row => {
+        csvContent.push(Object.values(row).map(value => `"${value}"`).join(','));
+      });
+      csvContent.push('');
+
+      // Transactions
+      csvContent.push(`"Transactions"`);
+      csvContent.push(Object.keys(report.transactions[0] || {}).map(key => `"${key}"`).join(','));
+      report.transactions.forEach(row => {
+        csvContent.push(Object.values(row).map(value => `"${value}"`).join(','));
+      });
+
+      const blob = new Blob([csvContent.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
@@ -141,6 +225,17 @@ function AdvancedReporting({ data }) {
             <option value="monthly">Monthly View</option>
             <option value="quarterly">Quarterly View</option>
             <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={exportFormat}
+            onChange={e => setExportFormat(e.target.value)}
+            className="px-3 py-2 rounded-xl border"
+          >
+            <option value="json">JSON</option>
+            <option value="xlsx">XLSX</option>
+            <option value="csv">CSV</option>
           </select>
         </div>
         <button
