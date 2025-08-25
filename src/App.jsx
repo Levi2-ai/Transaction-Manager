@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Save, Download, Upload, Search, Trash2, FileDown, IndianRupee, Users, Receipt, 
   ArrowDownRight, ArrowUpRight, ChevronRight, ChevronLeft, BarChart2, X } from "lucide-react";
-import { PieChart, Pie, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { ProjectManager, ProjectPhases, AdvancedReporting, ImportWizard } from './components';
 import { createDailyBackup, listBackups, restoreBackup } from '../src/utils/backup';
 
@@ -592,7 +592,11 @@ function ClientDetail({ client, data, projects, txns, onAddTxn, onDeleteTxn, onD
             {categories.length>0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={categories} dataKey="value" nameKey="name" outerRadius={70} />
+                  <Pie data={categories} dataKey="value" nameKey="name" outerRadius={70}>
+                    {categories.map((entry, index) => (
+                      <Cell key={index} fill={`hsl(${index * 25}, 70%, 50%)`} />
+                    ))}
+                  </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>

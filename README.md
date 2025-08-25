@@ -5,17 +5,17 @@ A lightweight React + Vite + Tailwind app to manage client deposits (credits), s
 
 ## Quick Start
 ```bash
-# 1) Extract the zip
-cd client-transaction-manager
-
-# 2) Install deps
+# 1) Install dependencies
 npm install
 
-# 3) Run dev server
-npm run dev
+# 2) Run the client, server, and Electron app concurrently in development mode
+npm run dev:all
+
+# Alternatively, to run Electron in development mode:
+npm run electron:start
 ```
 
-Open the shown URL in your browser.
+Open the shown URL in your browser for the web client, or launch the Electron app.
 
 ## Features
 - Add clients (name, contact, project, address, notes)
@@ -28,17 +28,27 @@ Open the shown URL in your browser.
 
 ## Build
 ```bash
+# Build the web client
 npm run build
+
+# Preview the web client build
 npm run preview
+
+# Build the Electron executable
+npm run build:electron
 ```
+
+The Electron executable will be found in the `release/` directory.
 
 ## Tech
 - React 18 + Vite
 - TailwindCSS
+- Electron (for desktop app)
+- SQLite (for server-side data storage)
 - framer-motion
 - lucide-react (icons)
 - recharts (charts)
 
 ## Notes
-- Data persists in LocalStorage (`ctm:v1:data`) on your device.
-- To reset, clear your browser site data.
+- Data persists in LocalStorage (`ctm:v1:data`) on your device for the web client.
+- The Electron app uses SQLite for data storage.
