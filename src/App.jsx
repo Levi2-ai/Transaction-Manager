@@ -816,7 +816,7 @@ export default function App() {
     setData(current => ({
       clients: [...current.clients, ...importedData.clients],
       projects: [...current.projects, ...importedData.projects],
-      txns: [...current.txns, ...importedData.transactions]
+      txns: [...current.txns, ...importedData.txns]
     }));
   };
 

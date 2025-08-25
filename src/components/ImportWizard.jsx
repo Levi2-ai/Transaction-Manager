@@ -5,11 +5,7 @@ function ImportWizard({ onImport, onClose }) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [mapping, setMapping] = useState({
-    clients: {},
-    projects: {},
-    transactions: {}
-  });
+  // Removed mapping state as it's no longer needed for structured JSON imports
   const [importing, setImporting] = useState(false);
   const fileRef = useRef();
 
@@ -35,7 +31,10 @@ function ImportWizard({ onImport, onClose }) {
         setFile(file);
         // For preview, we'll show transactions for now
         setPreview({
-          headers: data.txns.length > 0 ? Object.keys(data.txns[0]) : [],
+          clientHeaders: data.clients.length > 0 ? Object.keys(data.clients[0]) : [],
+          projectHeaders: data.projects.length > 0 ? Object.keys(data.projects[0]) : [],
+          transactionHeaders: data.txns.length > 0 ? Object.keys(data.txns[0]) : [],
+          headers: data.txns.length > 0 ? Object.keys(data.txns[0]) : [], // Keep for data preview table
           rows: data.txns.slice(0, 5).map(obj => Object.values(obj)), // Preview first 5 rows of transactions
           fullData: data // Store the full parsed data for import
         });
@@ -102,96 +101,10 @@ function ImportWizard({ onImport, onClose }) {
             {step === 2 && preview && (
               <>
                 <div className="space-y-6">
-                  <section>
-                    <h3 className="font-semibold mb-3">Map Client Fields</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['name', 'contact', 'address', 'notes'].map(field => (
-                        <div key={field} className="flex items-center gap-2">
-                          <label className="block text-sm">
-                            <span className="text-gray-600 capitalize">{field}</span>
-                            <select
-                              value={mapping.clients[field] || ''}
-                              onChange={e => setMapping({
-                                ...mapping,
-                                clients: { ...mapping.clients, [field]: e.target.value }
-                              })}
-                              className="mt-1 w-full rounded-xl border px-3 py-2"
-                            >
-                              <option value="">Don't Import</option>
-                              {preview.headers.map((h, i) => (
-                                <option key={i} value={h}>{h}</option>
-                              ))}
-                            </select>
-                          </label>
-                          {field === 'name' && !mapping.clients.name && (
-                            <AlertCircle className="text-amber-500" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section>
-                    <h3 className="font-semibold mb-3">Map Project Fields</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['name', 'description', 'status'].map(field => (
-                        <div key={field} className="flex items-center gap-2">
-                          <label className="block text-sm">
-                            <span className="text-gray-600 capitalize">{field}</span>
-                            <select
-                              value={mapping.projects[field] || ''}
-                              onChange={e => setMapping({
-                                ...mapping,
-                                projects: { ...mapping.projects, [field]: e.target.value }
-                              })}
-                              className="mt-1 w-full rounded-xl border px-3 py-2"
-                            >
-                              <option value="">Don't Import</option>
-                              {preview.headers.map((h, i) => (
-                                <option key={i} value={h}>{h}</option>
-                              ))}
-                            </select>
-                          </label>
-                          {field === 'name' && !mapping.projects.name && (
-                            <AlertCircle className="text-amber-500" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section>
-                    <h3 className="font-semibold mb-3">Map Transaction Fields</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['date', 'type', 'amount', 'category', 'description'].map(field => (
-                        <div key={field} className="flex items-center gap-2">
-                          <label className="block text-sm">
-                            <span className="text-gray-600 capitalize">{field}</span>
-                            <select
-                              value={mapping.transactions[field] || ''}
-                              onChange={e => setMapping({
-                                ...mapping,
-                                transactions: { ...mapping.transactions, [field]: e.target.value }
-                              })}
-                              className="mt-1 w-full rounded-xl border px-3 py-2"
-                            >
-                              <option value="">Don't Import</option>
-                              {preview.headers.map((h, i) => (
-                                <option key={i} value={h}>{h}</option>
-                              ))}
-                            </select>
-                          </label>
-                          {(field === 'date' || field === 'amount') && 
-                            !mapping.transactions[field] && (
-                              <AlertCircle className="text-amber-500" />
-                            )}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
+                  {/* Removed Map Client Fields, Map Project Fields, Map Transaction Fields sections */}
 
                   <div className="border rounded-xl p-4">
-                    <h4 className="font-medium mb-2">Data Preview</h4>
+                    <h4 className="font-medium mb-2">Data Preview (Transactions)</h4>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
@@ -223,7 +136,7 @@ function ImportWizard({ onImport, onClose }) {
                     </button>
                     <button
                       onClick={processImport}
-                      disabled={importing || !mapping.clients.name}
+                      disabled={importing}
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white hover:bg-black disabled:opacity-50"
                     >
                       {importing ? 'Importing...' : (
