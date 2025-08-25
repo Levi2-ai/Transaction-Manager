@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { Upload, AlertCircle, Check, X } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 function ImportWizard({ onImport, onClose }) {
   const [step, setStep] = useState(1);
@@ -17,27 +16,35 @@ function ImportWizard({ onImport, onClose }) {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const isJson = file.name.endsWith('.json');
+    if (!isJson) {
+      alert('Unsupported file type. Please select a JSON file.');
+      return;
+    }
     
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const workbook = XLSX.read(e.target.result, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-        
-        if (data.length < 2) throw new Error('File appears to be empty');
-        
+        const data = JSON.parse(e.target.result);
+        // Check for the expected structure
+        if (!data || !Array.isArray(data.clients) || !Array.isArray(data.projects) || !Array.isArray(data.txns)) {
+          throw new Error('Invalid JSON format. Expected keys: clients, projects, txns.');
+        }
+
         setFile(file);
+        // For preview, we'll show transactions for now
         setPreview({
-          headers: data[0],
-          rows: data.slice(1, 6) // Preview first 5 rows
+          headers: data.txns.length > 0 ? Object.keys(data.txns[0]) : [],
+          rows: data.txns.slice(0, 5).map(obj => Object.values(obj)), // Preview first 5 rows of transactions
+          fullData: data // Store the full parsed data for import
         });
         setStep(2);
       } catch (err) {
         alert('Error reading file: ' + err.message);
       }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsText(file);
   };
 
   const processImport = async () => {
@@ -45,68 +52,14 @@ function ImportWizard({ onImport, onClose }) {
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const workbook = XLSX.read(e.target.result, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(firstSheet);
+        const data = preview.fullData; // Use the fullData stored during file selection
         
-        // Transform data based on mapping
-        const transformed = {
-          clients: [],
-          projects: [],
-          transactions: []
-        };
-
-        // Process each row
-        data.forEach(row => {
-          // Extract client data
-          if (Object.keys(mapping.clients).length) {
-            const client = {};
-            Object.entries(mapping.clients).forEach(([field, column]) => {
-              client[field] = row[column];
-            });
-            if (client.name) { // Only add if required fields exist
-              client.id = crypto.randomUUID();
-              client.createdAt = new Date().toISOString();
-              transformed.clients.push(client);
-            }
-          }
-
-          // Extract project data
-          if (Object.keys(mapping.projects).length) {
-            const project = {};
-            Object.entries(mapping.projects).forEach(([field, column]) => {
-              project[field] = row[column];
-            });
-            if (project.name) {
-              project.id = crypto.randomUUID();
-              project.createdAt = new Date().toISOString();
-              // Link to client if possible
-              const client = transformed.clients.find(c => c.name === row[mapping.clients.name]);
-              if (client) project.clientId = client.id;
-              transformed.projects.push(project);
-            }
-          }
-
-          // Extract transaction data
-          if (Object.keys(mapping.transactions).length) {
-            const txn = {};
-            Object.entries(mapping.transactions).forEach(([field, column]) => {
-              txn[field] = row[column];
-            });
-            if (txn.amount) {
-              txn.id = crypto.randomUUID();
-              // Link to project if possible
-              const project = transformed.projects.find(p => p.name === row[mapping.projects.name]);
-              if (project) txn.projectId = project.id;
-              transformed.transactions.push(txn);
-            }
-          }
-        });
-
-        onImport(transformed);
+        // The data is already in the correct structure, so no further transformation or mapping is needed here.
+        // We just need to ensure onImport can handle this structure.
+        onImport(data);
         onClose();
       };
-      reader.readAsArrayBuffer(file);
+      reader.readAsText(file);
     } catch (err) {
       alert('Import failed: ' + err.message);
       setImporting(false);
@@ -130,7 +83,7 @@ function ImportWizard({ onImport, onClose }) {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".xlsx,.xls,.csv"
+                  accept=".json"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -138,10 +91,10 @@ function ImportWizard({ onImport, onClose }) {
                   onClick={() => fileRef.current?.click()}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white hover:bg-black"
                 >
-                  <Upload size={20}/> Select Excel File
+                  <Upload size={20}/> Select JSON File
                 </button>
                 <p className="text-sm text-gray-500 mt-4">
-                  Supported formats: .xlsx, .xls, .csv
+                  Supported format: .json
                 </p>
               </div>
             )}
